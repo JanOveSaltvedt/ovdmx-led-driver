@@ -34,6 +34,7 @@ int main(void)
 	// Enable interrupts
 	sei();
 	
+	com_send("Hello World\n");
 	static char outputBuffer[128];
     while(1)
     {

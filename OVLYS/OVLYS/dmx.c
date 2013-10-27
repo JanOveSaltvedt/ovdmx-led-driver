@@ -53,6 +53,7 @@ void dmx_init(void) {
 	
 	// ENABLE interrupts
 	DMX_USART.CTRLA |= USART_RXCINTLVL_LO_gc;
+	DMX_USART.CTRLB |= USART_RXEN_bm;
 	
 	// Set the rs485 enable pins to output
 	DMX_RE_PORT.DIRSET = DMX_RE_PIN;
@@ -61,11 +62,6 @@ void dmx_init(void) {
 	// Set the rs485 chip to receiving mode
 	DMX_RE_PORT.OUTCLR = DMX_RE_PIN;
 	DMX_DE_PORT.OUTCLR = DMX_DE_PIN;
-	
-	// Set up an interrupt on both edges on the RX pin.
-	DMX_USART_PORT.INT0MASK = DMX_USART_PIN_RX;
-	DMX_USART_PORT.DMX_USART_RX_PINCTRL |= PORT_ISC_BOTHEDGES_gc;
-	dmx_enable_interrupt();
 	
 	// Set up the buffers
 	for (uint8_t i = 0; i < 3; i++)
@@ -85,45 +81,18 @@ void dmx_init(void) {
 	dmx_back = &dmx_buffers[2];	
 }
 
-// Interrupt for rx edge interrupt
-ISR(DMX_USART_RX_PININT_VECTOR) {
-	// Check if its rising or falling edge
-	uint8_t rising = DMX_USART_PORT.IN & (DMX_USART_PIN_RX);
-	if(rising) {
-		if(dmx_state == DMX_STATE_IN_BREAK) {
-			// Check if its more than 88 us since break started.
-			timer_stop(&dmx_timer_break);
-			uint32_t timer = timer_get_ticks(&dmx_timer_break);
-			if (timer > 88*4 && timer < 1000000*4) 
-			{
-				// We just observed a mark after break
-				dmx_state = DMX_STATE_IN_MAB;
-				// Enable the receiver and disable pin interrupts
-				dmx_disable_interrupt();
-				dmx_enable_receiver();				
-			}
-			else {
-				// The MAB came to soon or too late. Back to idle?
-				dmx_state = DMX_STATE_IDLE;
-			}
-		}
-	}
-	else {
-		if(dmx_state == DMX_STATE_IDLE) {
-			// We just observed a break
-			// Start timer
-			timer_start(&dmx_timer_break);
-			dmx_state = DMX_STATE_IN_BREAK;
-		}
-	}
-}
-
 // Interrupt for usart receive
 ISR(DMX_USART_RXC_INT) {
-	// This should not really be needed. But oh well
-	while((DMX_USART.STATUS & USART_RXCIF_bm) == 0);
-	uint8_t b = DMX_USART.DATA;
 	
+	// This should not really be needed. But oh well
+	if(DMX_USART.STATUS & USART_FERR_bm) {
+		// Frame error means break
+		dmx_state = DMX_STATE_IN_MAB;
+		uint8_t b = DMX_USART.DATA;
+		return;
+	}
+	
+	uint8_t b = DMX_USART.DATA;
 	if(dmx_state == DMX_STATE_IN_MAB) {
 		// We got the start byte
 		dmx_state = DMX_STATE_DATA;
@@ -143,27 +112,8 @@ ISR(DMX_USART_RXC_INT) {
 			dmx_new_middle = 1;
 			
 			dmx_state = DMX_STATE_IDLE;
-			// Enable listening for
-			dmx_disable_receiver();
-			dmx_enable_interrupt();
 		}
 	}
-}
-
-void dmx_enable_receiver(void) {
-	DMX_USART.CTRLB |= USART_RXEN_bm;
-}
-
-void dmx_enable_interrupt(void) {
-	DMX_USART_PORT.INTCTRL |= PORT_INT0LVL_LO_gc;
-}
-
-void dmx_disable_receiver(void) {
-	DMX_USART.CTRLB &= ~USART_RXEN_bm;
-}
-
-void dmx_disable_interrupt(void) {
-	DMX_USART_PORT.INTCTRL &= ~PORT_INT0LVL_LO_gc;
 }
 
 dmx_packet_t* dmx_get_active_packet(void) {
