@@ -90,6 +90,23 @@ ISR(DMX_USART_RXC_INT) {
 		dmx_state = DMX_STATE_IN_MAB;
 		// Read the data register so we jump to the next frame...
 		uint8_t b = DMX_USART.DATA;
+		
+		// If we are working with a packet at the moment, then it also means we are done with it
+		if(dmx_back->data_length > 0) {
+			// Fill out the rest of the packet with zeros
+			for(uint16_t i = dmx_back->data_length; i < 512; i++) {
+				dmx_back->data[i] = 0;
+			}
+			dmx_back->data_length = 512;
+			
+			// We are done with the packet, swap back and middle buffers
+			dmx_packet_t* new_back = dmx_middle;
+			dmx_middle = dmx_back;
+			dmx_back = new_back;
+			
+			dmx_new_middle = 1;
+		}
+		
 		return;
 	}
 	
@@ -105,7 +122,7 @@ ISR(DMX_USART_RXC_INT) {
 		dmx_back->data_length++;
 		
 		if(dmx_back->data_length >= 512) {
-			// We are done with the packet, swap back and middle buffers
+			
 			dmx_packet_t* new_back = dmx_middle;
 			dmx_middle = dmx_back;
 			dmx_back = new_back;
@@ -121,6 +138,8 @@ dmx_packet_t* dmx_get_active_packet(void) {
 	if(dmx_new_middle == 0) {
 		return dmx_front;
 	}
+	// We have a new middle swap buffer
+	dmx_new_middle = 0;
 	// Swap front and middle buffers
 	dmx_packet_t* new_front = dmx_middle;
 	dmx_middle = dmx_front;
