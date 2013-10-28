@@ -88,6 +88,7 @@ ISR(DMX_USART_RXC_INT) {
 	if(DMX_USART.STATUS & USART_FERR_bm) {
 		// Frame error means break
 		dmx_state = DMX_STATE_IN_MAB;
+		// Read the data register so we jump to the next frame...
 		uint8_t b = DMX_USART.DATA;
 		return;
 	}

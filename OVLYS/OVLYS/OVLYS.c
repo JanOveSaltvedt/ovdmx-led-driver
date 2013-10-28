@@ -34,23 +34,19 @@ int main(void)
 	// Enable interrupts
 	sei();
 	
-	com_send("Hello World\n");
-	static char outputBuffer[128];
+	//com_send("Hello World\n");
+	
     while(1)
     {
-        for (uint16_t i = 0; i < 256; i++)
-        {
-			pwm_set_led_value(PWM_STATUS, 255-i);
-			_delay_ms(10);
-        }
+//         for (uint16_t i = 0; i < 256; i++)
+//         {
+// 			pwm_set_led_value(PWM_STATUS, 255-i);
+// 			_delay_ms(10);
+//         }
 		dmx_packet_t* packet = dmx_get_active_packet();
 		
-		sprintf(outputBuffer,"SC: 0x%X LEN: %d DATA: ", packet->start_code, packet->data_length);
-		com_send(outputBuffer);		
-		for(uint16_t i = 0; i < packet->data_length; i++) {
-			sprintf(outputBuffer,"%X", packet->data[i]);
-			com_send(outputBuffer);		
+		if(packet->data_length > 1) {
+			pwm_set_led_value(PWM_STATUS, 255-packet->data[0]);
 		}
-		com_send("\n");
     }
 }

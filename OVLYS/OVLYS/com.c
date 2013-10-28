@@ -6,8 +6,10 @@
  */ 
 
 #include "com.h"
+#include "dmx.h"
 
 #include <stdio.h>
+#include <string.h>
 
 #define COM_USART	&USARTD1
 
@@ -28,7 +30,21 @@ void com_send(char* msg) {
 
 
 void com_handle_message(char* msg) {
-	com_send("Hello Message\n");
+	static char outputBuffer[128];
+	
+	if(strcmp("show_packet", msg) == 0){
+		dmx_packet_t* packet = dmx_get_active_packet();
+		sprintf(outputBuffer,"SC: 0x%X LEN: %d DATA: ", packet->start_code, packet->data_length);
+		com_send(outputBuffer);
+		for(uint16_t i = 0; i < packet->data_length; i++) {
+			sprintf(outputBuffer,"%X", packet->data[i]);
+			com_send(outputBuffer);
+		}
+		com_send("\n");
+	}
+	else {
+		com_send("Commands:\nshow_packet\n");
+	}
 }
 
 ISR(USARTD1_RXC_vect)
