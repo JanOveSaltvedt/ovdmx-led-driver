@@ -7,14 +7,22 @@
 
 #include "pwm.h"
 #include "TC_driver.h"
+#include <avr/interrupt.h>
 
 #define DEFAULT_VALUE 0	
 #define MIN_VALUE 0
 #define MAX_VALUE 4095
 
-register16_t* pwm_outputs[16] = {&TCE0.CCA, &TCE0.CCB, &TCE0.CCC, &TCD0.CCD, &TCD1.CCA, &TCD1.CCB, &TCD0.CCA, &TCD0.CCB, &TCD0.CCC, &TCC0.CCD, &TCC1.CCA, &TCC1.CCB, &TCC0.CCA, &TCC0.CCB, &TCC0.CCC, &TCE0.CCD};
+register16_t* pwm_outputs[16] = {
+	&TCE0.CCCBUF, &TCE0.CCBBUF, &TCE0.CCABUF, // GROUP 1
+	&TCD1.CCBBUF, &TCD1.CCABUF, &TCD0.CCDBUF, // GROUP 2
+	&TCD0.CCCBUF, &TCD0.CCBBUF, &TCD0.CCABUF, // GROUP 3
+	&TCC1.CCBBUF, &TCC1.CCABUF, &TCC0.CCDBUF, // GROUP 4
+	&TCC0.CCCBUF, &TCC0.CCBBUF, &TCC0.CCABUF, // GROUP 5
+	&TCE0.CCDBUF}; // Status
 uint16_t led_correction[] = LED_CORRECTION;
 
+volatile pwm_update_callback_t pwm_update_callback = 0;
 
 uint8_t pwm_init(void) {	
 	// Set all pwm pins to outputs
@@ -62,14 +70,31 @@ uint8_t pwm_init(void) {
 		*pwm_outputs[i] = DEFAULT_VALUE; 
 	}
 	
-	// Start timers
+	// Start timers with equal spacing between. (We avoid that all the power is drawn at the same time...)
 	TC0_ConfigClockSource(&TCC0, TC_CLKSEL_DIV8_gc);
-	TC0_ConfigClockSource(&TCC1, TC_CLKSEL_DIV8_gc);
+	while(TCC0.CNT <= (4096/5)*1);	
+	TC1_ConfigClockSource(&TCC1, TC_CLKSEL_DIV8_gc);
+	while(TCC0.CNT <= (4096/5)*2);
 	TC0_ConfigClockSource(&TCD0, TC_CLKSEL_DIV8_gc);
-	TC0_ConfigClockSource(&TCD1, TC_CLKSEL_DIV8_gc);
-	TC0_ConfigClockSource(&TCE0, TC_CLKSEL_DIV8_gc);
-	
+	while(TCC0.CNT <= (4096/5)*3);
+	TC1_ConfigClockSource(&TCD1, TC_CLKSEL_DIV8_gc);
+	while(TCC0.CNT <= (4096/5)*4);
+	TC0_ConfigClockSource(&TCE0, TC_CLKSEL_DIV8_gc);	
 	return 0;
+}
+
+ISR(TCD0_OVF_vect) {
+	if(pwm_update_callback != 0) {
+		(*pwm_update_callback)();
+	}
+}
+
+void pwm_set_on_update_callback(pwm_update_callback_t cb) {
+	pwm_update_callback = cb;
+	// Enable the interrupt
+	cli();
+	TC0_SetOverflowIntLevel(&TCD0, TC_OVFINTLVL_LO_gc);
+	sei();
 }
 
 void pwm_set_value(uint8_t n, uint16_t val) {

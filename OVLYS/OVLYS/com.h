@@ -16,6 +16,7 @@
 int com_init();
 
 void com_send(char* msg);
+void com_sendf(const char *fmt, ...);
 
 
 #endif /* COM_H_ */

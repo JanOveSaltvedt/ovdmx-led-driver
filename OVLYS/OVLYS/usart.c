@@ -12,12 +12,12 @@ int usart_enable_rx_int(USART_t* usart) {
 	return 1;
 }
 
-int usart_init(USART_t* usart, uint8_t baudSelectValue, uint8_t baudScaleFactor) {
+int usart_init(USART_t* usart, uint16_t baudSelectValue, uint8_t baudScaleFactor) {
 	// Set format 8bit,no parity 1 stop bit
 	usart->CTRLC = USART_CHSIZE_8BIT_gc | USART_PMODE_DISABLED_gc;
 	
 	usart->BAUDCTRLA = (uint8_t)baudSelectValue;
-	usart->BAUDCTRLB = (baudScaleFactor << USART_BSCALE0_bp) | (baudSelectValue>>8);
+	usart->BAUDCTRLB = (baudScaleFactor << USART_BSCALE0_bp) | ((uint8_t)(baudSelectValue>>8));
 	
 	// Enable tx and rx
 	usart->CTRLB |= USART_TXEN_bm | USART_RXEN_bm;

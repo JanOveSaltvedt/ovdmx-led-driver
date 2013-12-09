@@ -13,7 +13,7 @@
 
 int usart_enable_rx_int(USART_t* usart);
 
-int usart_init(USART_t* usart, uint8_t baudSelectValue, uint8_t baudScaleFactor);
+int usart_init(USART_t* usart, uint16_t baudSelectValue, uint8_t baudScaleFactor);
 
 void usart_set2x(USART_t* usart);
 

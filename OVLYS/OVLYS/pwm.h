@@ -29,7 +29,11 @@
 #define PWM_15 14
 #define PWM_STATUS 15
 
+
+typedef void (*pwm_update_callback_t)(void);
 uint8_t pwm_init(void);
+
+void pwm_set_on_update_callback(pwm_update_callback_t cb);
 void pwm_set_value(uint8_t n, uint16_t val);
 void pwm_set_led_value(uint8_t n, uint8_t val);
 

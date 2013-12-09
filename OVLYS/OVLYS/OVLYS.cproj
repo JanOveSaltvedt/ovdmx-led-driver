@@ -48,7 +48,7 @@
         <InterfaceName>PDI</InterfaceName>
       </ToolOptions>
       <ToolType>com.atmel.avrdbg.tool.jtagice3plus</ToolType>
-      <ToolNumber>J30200013003</ToolNumber>
+      <ToolNumber>J30200012999</ToolNumber>
       <ToolName>JTAGICE3</ToolName>
     </com_atmel_avrdbg_tool_jtagice3plus>
     <com_atmel_avrdbg_tool_simulator>
@@ -64,6 +64,7 @@
       </ToolNumber>
       <ToolName xmlns="">Simulator</ToolName>
     </com_atmel_avrdbg_tool_simulator>
+    <preserveEEPROM>True</preserveEEPROM>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
     <ToolchainSettings>
@@ -133,6 +134,24 @@
     <Compile Include="com.h">
       <SubType>compile</SubType>
     </Compile>
+    <Compile Include="config.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="config.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="crc.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="crc.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="device.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="device.h">
+      <SubType>compile</SubType>
+    </Compile>
     <Compile Include="dmx.c">
       <SubType>compile</SubType>
     </Compile>
@@ -164,6 +183,12 @@
       <SubType>compile</SubType>
     </Compile>
     <Compile Include="usart.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="watchdog.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="watchdog.h">
       <SubType>compile</SubType>
     </Compile>
   </ItemGroup>

@@ -5,11 +5,15 @@
  *  Author: Jan Ove Saltvedt
  */ 
 
-#include "com.h"
-#include "dmx.h"
-
 #include <stdio.h>
 #include <string.h>
+
+#include "com.h"
+#include "dmx.h"
+#include "config.h"
+#include "device.h"
+
+#include <stddef.h>
 
 #define COM_USART	&USARTD1
 
@@ -19,15 +23,14 @@ int com_init() {
 	PORTD.DIRCLR = PIN6_bm;
 	
 	usart_enable_rx_int(COM_USART);
-	// 9600 bps at 32 Mhz
-	usart_init(COM_USART, 207, 0);
+	// 115200 bps at 32 Mhz
+	usart_init(COM_USART, 2094, 0b1001);
 	return 1;
 }
 
 void com_send(char* msg) {
 	usart_putstring(COM_USART, msg);
 }
-
 
 void com_handle_message(char* msg) {
 	static char outputBuffer[128];
@@ -42,9 +45,32 @@ void com_handle_message(char* msg) {
 		}
 		com_send("\n");
 	}
-	else {
-		com_send("Commands:\nshow_packet\n");
+	else if(strcmp("show_config", msg) == 0){
+		config_t* config = config_get();
+		sprintf(outputBuffer,"MID: 0x%X DID: 0x%lX CHANNELMAPPING:\n", config->manufacter_id, config->device_id);
+		com_send(outputBuffer);
+		for(uint8_t i = 0; i < CONFIG_NUM_CHANNELS; i++) {
+			sprintf(outputBuffer,"  C[%d]=%d\n", i, config->channel_mapping[i]);
+			com_send(outputBuffer);
+		}
 	}
+	else if(strcmp("show_lot", msg) == 0){
+		sprintf(outputBuffer,"LOT0: 0x%hhX\n", device_read_calibration_byte( offsetof( NVM_PROD_SIGNATURES_t,  LOTNUM0) ));
+		com_send(outputBuffer);
+	}
+	
+	else {
+		com_send("Commands:\nshow_packet\nshow_config\n");
+	}
+}
+
+void com_sendf(const char *fmt, ...) {
+	static char buffer[128];
+	va_list args;
+	va_start(args, fmt);
+	vsnprintf(buffer, 128, fmt, args);
+	com_send(buffer);
+	va_end(args);	
 }
 
 ISR(USARTD1_RXC_vect)
